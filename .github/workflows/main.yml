@@ -55,5 +55,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: plutobook-manylinux_2_28-x86_64
-          path: plutobook-manylinux_2_28-x86_64.tar.gz
+          name: plutobook-linux-x64
+          path: plutobook-linux-x64.tar.gz
