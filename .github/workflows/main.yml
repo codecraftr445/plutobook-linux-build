@@ -38,13 +38,13 @@ jobs:
             patchelf --set-rpath '$ORIGIN' /bundle/plutobook/lib/$(basename $lib)
             strip --strip-unneeded /bundle/plutobook/lib/$(basename $lib)
           done
-          
+
           for tool in $tools; do
             patchelf --set-rpath '$ORIGIN/../lib' /bundle/plutobook/tools/$tool
             strip --strip-unneeded /bundle/plutobook/tools/$tool
           done
 
-          tar -czvf plutobook-linux-x64.tar.gz -C /bundle plutobook
+          tar -czhvf plutobook-linux-x64.tar.gz -C /bundle plutobook
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
