@@ -14,12 +14,11 @@ jobs:
           dnf -y install patchelf pax-utils binutils
 
           mkdir -p /bundle/plutobook/lib /bundle/plutobook/include /bundle/plutobook/tools
-          cp -a /usr/lib64/libplutobook.so* /bundle/plutobook/lib/
           cp -r /usr/include/plutobook* /bundle/plutobook/include/
           cp /usr/bin/html2pdf /usr/bin/html2png /bundle/plutobook/tools/
 
-          libraries=$(lddtree -l /usr/lib64/libplutobook.so \
-            | grep -v "libplutobook.so$" \
+          tools="html2pdf html2png"
+          libraries=$( for tool in $tools; do lddtree -l /usr/bin/$tool; done \
             | grep -v -e 'libgcc_s.so.1' \
                       -e 'libresolv.so.2' \
                       -e 'libpthread.so.0' \
@@ -42,7 +41,7 @@ jobs:
           patchelf --set-rpath '$ORIGIN' /bundle/plutobook/lib/libplutobook.so
           strip --strip-unneeded /bundle/plutobook/lib/libplutobook.so
 
-          for tool in html2pdf html2png; do
+          for tool in $tools; do
             patchelf --set-rpath '$ORIGIN/../lib' /bundle/plutobook/tools/$tool
             strip --strip-unneeded /bundle/plutobook/tools/$tool
           done
