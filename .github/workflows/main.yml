@@ -38,10 +38,7 @@ jobs:
             patchelf --set-rpath '$ORIGIN' /bundle/plutobook/lib/$(basename $lib)
             strip --strip-unneeded /bundle/plutobook/lib/$(basename $lib)
           done
-
-          patchelf --set-rpath '$ORIGIN' /bundle/plutobook/lib/libplutobook.so
-          strip --strip-unneeded /bundle/plutobook/lib/libplutobook.so
-
+          
           for tool in $tools; do
             patchelf --set-rpath '$ORIGIN/../lib' /bundle/plutobook/tools/$tool
             strip --strip-unneeded /bundle/plutobook/tools/$tool
