@@ -1,9 +1,6 @@
 name: Extract plutobook binaries
 
-on:
-  workflow_dispatch:
-  push:
-    tags: ["v*"]
+on: [push, pull_request]
 
 jobs:
   extract:
