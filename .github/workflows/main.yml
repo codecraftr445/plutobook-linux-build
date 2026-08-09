@@ -21,9 +21,31 @@ jobs:
           cp -r /usr/include/plutobook* /bundle/plutobook/include/
           cp /usr/bin/html2pdf /usr/bin/html2png /bundle/plutobook/tools/
 
-          libraries=$(lddtree -l /usr/lib64/libplutobook.so)
+          # auditwheel manylinux_2_28 lib_whitelist + the dynamic linker
+          WHITELIST="libGL.so.1 libICE.so.6 libSM.so.6 libX11.so.6 libXext.so.6
+            libXrender.so.1 libanl.so.1 libatomic.so.1 libc.so.6 libdl.so.2
+            libexpat.so.1 libgcc_s.so.1 libglib-2.0.so.0 libgobject-2.0.so.0
+            libgthread-2.0.so.0 libm.so.6 libmvec.so.1 libnsl.so.1 libpthread.so.0
+            libresolv.so.2 librt.so.1 libstdc++.so.6 libutil.so.1 libz.so.1
+            ld-linux-x86-64.so.2"
+
+          is_whitelisted() {
+            for w in $WHITELIST; do
+              [ "$(basename "$1")" = "$w" ] && return 0
+            done
+            return 1
+          }
+
+          libraries=$(
+            { lddtree -l /usr/lib64/libplutobook.so
+              lddtree -l /usr/bin/html2pdf
+              lddtree -l /usr/bin/html2png
+            } | grep '^/' | sort -u | grep -v '/libplutobook\.so' \
+              | grep -v '/html2pdf$' | grep -v '/html2png$'
+          )
 
           for lib in $libraries; do
+            is_whitelisted "$lib" && { echo "skip (whitelisted): $lib"; continue; }
             cp -v "$lib" /bundle/plutobook/lib/
             patchelf --set-rpath '$ORIGIN' "/bundle/plutobook/lib/$(basename "$lib")"
             strip --strip-unneeded "/bundle/plutobook/lib/$(basename "$lib")"
@@ -40,7 +62,7 @@ jobs:
           tar -czvf plutobook-manylinux_2_28-x86_64.tar.gz -C /bundle plutobook
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: plutobook-manylinux_2_28-x86_64
           path: plutobook-manylinux_2_28-x86_64.tar.gz
