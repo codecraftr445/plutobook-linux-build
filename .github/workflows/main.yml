@@ -6,7 +6,6 @@ jobs:
   extract:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
       packages: read
     container:
       image: ghcr.io/plutoprint/plutobook-manylinux_2_28_x86_64:latest
