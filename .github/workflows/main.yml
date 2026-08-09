@@ -1,0 +1,69 @@
+name: Extract plutobook binaries
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    container:
+      image: ghcr.io/plutoprint/plutobook-manylinux_2_28_x86_64:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Bundle library and dependencies
+        run: |
+          dnf -y install patchelf pax-utils binutils
+
+          mkdir -p /bundle/plutobook/lib /bundle/plutobook/include
+          cp -a /usr/lib64/libplutobook.so* /bundle/plutobook/lib/
+          cp -r /usr/include/plutobook* /bundle/plutobook/include/
+
+          libraries=$(lddtree -l /usr/lib64/libplutobook.so \
+            | grep -v 'libplutobook\.so$' \
+            | grep -v -e 'libc\.so\.6' \
+                      -e 'libm\.so\.6' \
+                      -e 'libdl\.so\.2' \
+                      -e 'libpthread\.so\.0' \
+                      -e 'librt\.so\.1' \
+                      -e 'libresolv\.so\.2' \
+                      -e 'ld-linux-x86-64\.so\.2' \
+                      -e 'libstdc\+\+\.so\.6' \
+                      -e 'libgcc_s\.so\.1')
+
+          for lib in $libraries; do
+            cp -v "$lib" /bundle/plutobook/lib/
+            patchelf --set-rpath '$ORIGIN' "/bundle/plutobook/lib/$(basename "$lib")"
+            strip --strip-unneeded "/bundle/plutobook/lib/$(basename "$lib")"
+          done
+
+          patchelf --set-rpath '$ORIGIN' /bundle/plutobook/lib/libplutobook.so
+          strip --strip-unneeded /bundle/plutobook/lib/libplutobook.so
+
+          tar -czvf plutobook-manylinux_2_28-x86_64.tar.gz -C /bundle plutobook
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plutobook-manylinux_2_28-x86_64
+          path: plutobook-manylinux_2_28-x86_64.tar.gz
+
+      - name: Upload to release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          dnf -y install 'dnf-command(config-manager)'
+          dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+          dnf -y install gh
+          gh release create "${{ github.ref_name }}" --repo "${{ github.repository }}" --generate-notes || true
+          gh release upload "${{ github.ref_name }}" plutobook-manylinux_2_28-x86_64.tar.gz \
+            --repo "${{ github.repository }}" --clobber
+            
