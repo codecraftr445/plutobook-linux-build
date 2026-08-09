@@ -10,18 +10,16 @@ jobs:
       packages: read
     container:
       image: ghcr.io/plutoprint/plutobook-manylinux_2_28_x86_64:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
+      
     steps:
       - name: Bundle library and dependencies
         run: |
           dnf -y install patchelf pax-utils binutils
 
-          mkdir -p /bundle/plutobook/lib /bundle/plutobook/include
+          mkdir -p /bundle/plutobook/lib /bundle/plutobook/include /bundle/plutobook/tools
           cp -a /usr/lib64/libplutobook.so* /bundle/plutobook/lib/
           cp -r /usr/include/plutobook* /bundle/plutobook/include/
+          cp /usr/bin/html2pdf /usr/bin/html2png /bundle/plutobook/tools/
 
           libraries=$(lddtree -l /usr/lib64/libplutobook.so \
             | grep -v 'libplutobook\.so$' \
@@ -44,6 +42,11 @@ jobs:
           patchelf --set-rpath '$ORIGIN' /bundle/plutobook/lib/libplutobook.so
           strip --strip-unneeded /bundle/plutobook/lib/libplutobook.so
 
+          for tool in html2pdf html2png; do
+            patchelf --set-rpath '$ORIGIN/../lib' /bundle/plutobook/tools/$tool
+            strip --strip-unneeded /bundle/plutobook/tools/$tool
+          done
+
           tar -czvf plutobook-manylinux_2_28-x86_64.tar.gz -C /bundle plutobook
 
       - name: Upload artifact
@@ -51,16 +54,3 @@ jobs:
         with:
           name: plutobook-manylinux_2_28-x86_64
           path: plutobook-manylinux_2_28-x86_64.tar.gz
-
-      - name: Upload to release
-        if: github.ref_type == 'tag'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          dnf -y install 'dnf-command(config-manager)'
-          dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
-          dnf -y install gh
-          gh release create "${{ github.ref_name }}" --repo "${{ github.repository }}" --generate-notes || true
-          gh release upload "${{ github.ref_name }}" plutobook-manylinux_2_28-x86_64.tar.gz \
-            --repo "${{ github.repository }}" --clobber
-            
