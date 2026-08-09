@@ -34,10 +34,9 @@ jobs:
             | sort -u)
 
           for lib in $libraries; do
-            soname=$(patchelf --print-soname "$lib")
-            cp -v "$lib" "/bundle/plutobook/lib/$soname"
-            patchelf --set-rpath '$ORIGIN' "/bundle/plutobook/lib/$soname"
-            strip --strip-unneeded "/bundle/plutobook/lib/$soname"
+            cp -v $lib /bundle/plutobook/lib/
+            patchelf --set-rpath '$ORIGIN' /bundle/plutobook/lib/$(basename $lib)
+            strip --strip-unneeded /bundle/plutobook/lib/$(basename $lib)
           done
 
           patchelf --set-rpath '$ORIGIN' /bundle/plutobook/lib/libplutobook.so
