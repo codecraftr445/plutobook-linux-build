@@ -20,8 +20,7 @@ jobs:
           tools="html2pdf html2png"
           libraries=$( for tool in $tools; do lddtree -l /usr/bin/$tool; done \
             | grep -v '^/usr/bin/' \
-            | grep -v -e 'libplutobook.so' \
-                      -e 'libgcc_s.so.1' \
+            | grep -v -e 'libgcc_s.so.1' \
                       -e 'libresolv.so.2' \
                       -e 'libpthread.so.0' \
                       -e 'libm.so.6' \
