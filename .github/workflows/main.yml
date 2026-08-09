@@ -19,7 +19,9 @@ jobs:
 
           tools="html2pdf html2png"
           libraries=$( for tool in $tools; do lddtree -l /usr/bin/$tool; done \
-            | grep -v -e 'libgcc_s.so.1' \
+            | grep -v '^/usr/bin/' \
+            | grep -v -e 'libplutobook.so' \
+                      -e 'libgcc_s.so.1' \
                       -e 'libresolv.so.2' \
                       -e 'libpthread.so.0' \
                       -e 'libm.so.6' \
@@ -29,7 +31,8 @@ jobs:
                       -e 'librt.so.1' \
                       -e 'libz.so.1' \
                       -e 'ld-linux-x86-64.so.2' \
-                      -e 'libstdc++.so.6')
+                      -e 'libstdc++.so.6' \
+            | sort -u)
 
           for lib in $libraries; do
             soname=$(patchelf --print-soname "$lib")
